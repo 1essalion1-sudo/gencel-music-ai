@@ -30,102 +30,80 @@ function setupAudio(){if(audioCtx)return;audioCtx=new (window.AudioContext||wind
 function applyEffects(){if(!audioCtx)return;low.gain.setTargetAtTime(+$('bass').value,audioCtx.currentTime,.025);high.gain.setTargetAtTime(+$('treble').value,audioCtx.currentTime,.025);gain.gain.setTargetAtTime(1,audioCtx.currentTime,.025);master.gain.setTargetAtTime(+$('volume').value/100,audioCtx.currentTime,.025);dry.gain.setTargetAtTime(1,audioCtx.currentTime,.025);const wet=+$('echo').value/100;echoWet.gain.setTargetAtTime(wet*.65,audioCtx.currentTime,.03);feedback.gain.setTargetAtTime(wet*.58,audioCtx.currentTime,.03);delay.delayTime.setTargetAtTime(.18+wet*.32,audioCtx.currentTime,.03)}
 player.onplay=()=>{setupAudio();audioCtx.resume()};
 function draw(){
- const w=canvas.width,h=canvas.height,cx=w/2,cy=h/2;
+ const w=canvas.width,h=canvas.height,cx=w/2;
  ctx.clearRect(0,0,w,h);
- // Background is independent from the visualizer shape.
+ // Background: preserve an uploaded background; otherwise paint a scene for each style.
  if(bg){ctx.drawImage(bg,0,0,w,h)}
- else{
+ else if(style==='ocean'){
+  const sky=ctx.createLinearGradient(0,0,0,h*.56);
+  sky.addColorStop(0,'#d8b6b0');sky.addColorStop(.58,'#e7c1b1');sky.addColorStop(1,'#8499a5');
+  ctx.fillStyle=sky;ctx.fillRect(0,0,w,h*.57);
+  // distant coastal skyline
+  ctx.fillStyle='rgba(67,91,111,.68)';
+  for(let i=0;i<30;i++){const x=i*w/29,bw=w*.018+(i%4)*w*.006,bh=h*(.12+(Math.sin(i*2.3)+1)*.09);ctx.fillRect(x-bw/2,h*.48-bh,bw,bh);ctx.fillRect(x-bw*.16,h*.48-bh-h*.025,bw*.32,h*.025)}
+  // sunset haze and horizon
+  const sun=ctx.createRadialGradient(cx,h*.42,2,cx,h*.42,w*.42);
+  sun.addColorStop(0,'rgba(255,232,208,.7)');sun.addColorStop(1,'rgba(255,214,194,0)');
+  ctx.fillStyle=sun;ctx.fillRect(0,0,w,h*.8);
+  ctx.fillStyle='#173b4d';ctx.fillRect(0,h*.49,w,h*.51);
+  // layered ocean waves
+  for(let layer=0;layer<13;layer++){
+   const y=h*(.51+layer*.039);
+   ctx.beginPath();ctx.moveTo(0,y);
+   for(let x=0;x<=w;x+=8)ctx.lineTo(x,y+Math.sin(x*.018+layer*1.4)*h*.009+Math.sin(x*.043+layer)*h*.004);
+   ctx.strokeStyle=layer%2?'rgba(165,201,207,.5)':'rgba(4,25,39,.72)';
+   ctx.lineWidth=2+layer*.45;ctx.stroke();
+  }
+  // reflected sunset shimmer
+  for(let i=0;i<22;i++){const yy=h*(.54+i*.019),ww=w*(.07+(i%5)*.025);ctx.fillStyle='rgba(255,218,184,'+(0.13-i*.004)+')';ctx.fillRect(cx-ww/2,yy,ww,2)}
+ }else{
   const g=ctx.createLinearGradient(0,0,w,h);
   if(style==='red'){g.addColorStop(0,'#210711');g.addColorStop(.5,'#7d102c');g.addColorStop(1,'#170817')}
-  else if(style==='ocean'){g.addColorStop(0,'#e8b7a6');g.addColorStop(.43,'#527d91');g.addColorStop(.48,'#173c50');g.addColorStop(1,'#061a2b')}
   else{g.addColorStop(0,'#071126');g.addColorStop(.55,'#172b55');g.addColorStop(1,'#050b19')}
   ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
  }
  const dim=+$('dim').value/100;
  if(dim){ctx.fillStyle='rgba(0,0,0,'+dim+')';ctx.fillRect(0,0,w,h)}
  const data=new Uint8Array(analyser?analyser.frequencyBinCount:128);
- if(analyser) analyser.getByteFrequencyData(data); else data.fill(10);
+ if(analyser)analyser.getByteFrequencyData(data);else data.fill(10);
  const value=i=>data[Math.min(data.length-1,Math.floor(i*data.length/100))]||8;
  const title=$('titleText').value||'MY MUSIC';
  ctx.save();ctx.textAlign='center';ctx.fillStyle='#fff';ctx.shadowColor='#000';ctx.shadowBlur=12;ctx.font='bold 54px system-ui';ctx.fillText(title.toUpperCase(),cx,h*.16,w*.82);ctx.restore();
 
  if(style==='red'){
-  // Crimson Drive: fan-shaped radial equalizer around a central circular badge.
-  const ox=cx,oy=h*.57,r=112;
-  const halo=ctx.createRadialGradient(ox,oy,r*.6,ox,oy,r*2.25);
-  halo.addColorStop(0,'rgba(255,45,85,.38)');halo.addColorStop(1,'rgba(255,15,55,0)');
+  const ox=cx,oy=h*.57,r=Math.min(w,h)*.19;
+  const halo=ctx.createRadialGradient(ox,oy,r*.6,ox,oy,r*2.25);halo.addColorStop(0,'rgba(255,45,85,.38)');halo.addColorStop(1,'rgba(255,15,55,0)');
   ctx.fillStyle=halo;ctx.fillRect(ox-r*2.5,oy-r*2.5,r*5,r*5);
   ctx.save();ctx.translate(ox,oy);ctx.shadowColor='#ff365f';ctx.shadowBlur=14;
-  for(let i=0;i<84;i++){
-   const angle=(-Math.PI*.88)+(i/83)*(Math.PI*1.76);
-   const amp=value(i)*.72,len=18+amp;
-   ctx.save();ctx.rotate(angle);
-   const grad=ctx.createLinearGradient(0,-r-len,0,-r);
-   grad.addColorStop(0,'#fff4f5');grad.addColorStop(.45,'#ff647d');grad.addColorStop(1,'#b20d37');
-   ctx.fillStyle=grad;ctx.fillRect(-4,-r-len,8,len);ctx.restore();
-  }
+  for(let i=0;i<84;i++){const angle=(-Math.PI*.88)+(i/83)*(Math.PI*1.76),amp=value(i)*.72,len=18+amp;ctx.save();ctx.rotate(angle);const grad=ctx.createLinearGradient(0,-r-len,0,-r);grad.addColorStop(0,'#fff4f5');grad.addColorStop(.45,'#ff647d');grad.addColorStop(1,'#b20d37');ctx.fillStyle=grad;ctx.fillRect(-4,-r-len,8,len);ctx.restore()}
   ctx.shadowBlur=20;ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fillStyle='#08060d';ctx.fill();ctx.lineWidth=7;ctx.strokeStyle='#ff315b';ctx.stroke();ctx.restore();
  }else if(style==='ocean'){
-  // Golden Tide: prominent circular audio-reactive halo, like the Chill Nation reference.
-  const ox=cx,oy=h*.55,r=Math.min(w,h)*.255;
-  const glow=ctx.createRadialGradient(ox,oy,r*.45,ox,oy,r*1.9);
-  glow.addColorStop(0,'rgba(255,236,200,.06)');
-  glow.addColorStop(.58,'rgba(255,191,128,.35)');
-  glow.addColorStop(.82,'rgba(255,74,156,.22)');
-  glow.addColorStop(1,'rgba(70,80,255,0)');
-  ctx.fillStyle=glow;ctx.fillRect(ox-r*2,oy-r*2,r*4,r*4);
-  // Outer wavy rings.
-  for(let layer=0;layer<4;layer++){
-   ctx.beginPath();
-   for(let i=0;i<=360;i++){
-    const angle=i/360*Math.PI*2;
-    const bin=Math.floor((i/360)*data.length);
-    const amp=(data[bin]||8)*.24;
-    const ripple=Math.sin(angle*9+layer*.7)*5+Math.cos(angle*15-layer)*3;
-    const radius=r+amp+ripple+layer*7;
-    const x=ox+Math.cos(angle)*radius,y=oy+Math.sin(angle)*radius;
-    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
-   }
-   ctx.closePath();
-   ctx.lineWidth=layer===0?9:6;
-   ctx.strokeStyle=['#fff5dc','#ffe16e','#ff4b9b','#6d55ff'][layer];
-   ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=layer===0?20:13;ctx.stroke();
-  }
-  // Inner dark disc provides a clear place for the user's uploaded logo.
-  ctx.save();ctx.shadowColor='#ffbd8a';ctx.shadowBlur=18;
-  ctx.beginPath();ctx.arc(ox,oy,r-12,0,Math.PI*2);
-  ctx.fillStyle='#090b15';ctx.fill();ctx.lineWidth=4;ctx.strokeStyle='rgba(255,245,220,.9)';ctx.stroke();
-  ctx.restore();
-  // Short radial ticks make the circle visibly react even on quiet audio.
-  ctx.save();ctx.translate(ox,oy);ctx.shadowColor='#ffe5b0';ctx.shadowBlur=10;
-  for(let i=0;i<72;i++){
-   const angle=i/72*Math.PI*2,bin=Math.floor(i/72*data.length),len=8+(data[bin]||6)*.22;
-   ctx.save();ctx.rotate(angle);ctx.strokeStyle=i%3===0?'#fff0c9':'#ffb6a0';ctx.lineWidth=3;
-   ctx.beginPath();ctx.moveTo(0,-r-13);ctx.lineTo(0,-r-13-len);ctx.stroke();ctx.restore();
-  }
+  // Golden Tide: Chill Nation-inspired ocean scene with a thick white organic ring and rainbow edge.
+  const ox=cx,oy=h*.53,r=Math.min(w,h)*.255;
+  const radiusAt=(ang,scale)=>{const idx=Math.floor(((ang%(Math.PI*2)+Math.PI*2)%(Math.PI*2))/(Math.PI*2)*data.length);const beat=(data[idx]||10)/255;return r*scale+Math.sin(ang*7)*5+Math.sin(ang*13+1.2)*3+beat*14};
+  const blob=(scale)=>{ctx.beginPath();for(let i=0;i<=300;i++){const ang=i/300*Math.PI*2,rr=radiusAt(ang,scale),x=ox+Math.cos(ang)*rr,y=oy+Math.sin(ang)*rr;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.closePath()};
+  // soft halo, then stacked neon borders
+  const halo=ctx.createRadialGradient(ox,oy,r*.65,ox,oy,r*1.8);halo.addColorStop(0,'rgba(255,255,235,.12)');halo.addColorStop(.7,'rgba(255,70,170,.22)');halo.addColorStop(1,'rgba(20,90,255,0)');
+  ctx.fillStyle=halo;ctx.fillRect(ox-r*2,oy-r*2,r*4,r*4);
+  ctx.save();ctx.shadowBlur=24;ctx.shadowColor='#ec36c8';blob(1.16);ctx.fillStyle='#2538ff';ctx.fill();
+  blob(1.12);ctx.fillStyle='#ec28a5';ctx.fill();
+  blob(1.075);ctx.fillStyle='#ffdf22';ctx.fill();
+  blob(1.025);ctx.fillStyle='#fffdf1';ctx.fill();
+  // inner dark circular badge
+  ctx.shadowBlur=18;ctx.shadowColor='#000';ctx.beginPath();ctx.arc(ox,oy,r*.78,0,Math.PI*2);ctx.fillStyle='#08080b';ctx.fill();
+  // place uploaded logo inside the central badge when available
+  if(logo){ctx.save();ctx.beginPath();ctx.arc(ox,oy,r*.72,0,Math.PI*2);ctx.clip();const side=r*1.42,ratio=logo.width/logo.height,lw=ratio>=1?side:side*ratio,lh=ratio>=1?side/ratio:side;ctx.drawImage(logo,ox-lw/2,oy-lh/2,lw,lh);ctx.restore()}
   ctx.restore();
  }else{
-  // Blue Room: a wide dotted baseline with vertical bars rising from it.
+  // Blue Room: long dotted baseline with vertical bars.
   const left=w*.09,right=w*.91,baseline=h*.76,count=92,step=(right-left)/(count-1);
   ctx.save();ctx.shadowColor='#e4f1ff';ctx.shadowBlur=8;
-  for(let i=0;i<count;i++){
-   const x=left+i*step,amp=value(i)*.68,barH=5+amp;
-   ctx.beginPath();ctx.arc(x,baseline,4.5,0,Math.PI*2);ctx.fillStyle='#eaf1ff';ctx.fill();
-   const grad=ctx.createLinearGradient(0,baseline-barH,0,baseline);
-   grad.addColorStop(0,'#ffffff');grad.addColorStop(1,'#86baff');
-   ctx.fillStyle=grad;ctx.fillRect(x-4,baseline-barH,8,barH);
-  }
+  for(let i=0;i<count;i++){const x=left+i*step,amp=value(i)*.68,barH=5+amp;ctx.beginPath();ctx.arc(x,baseline,4.5,0,Math.PI*2);ctx.fillStyle='#eaf1ff';ctx.fill();const grad=ctx.createLinearGradient(0,baseline-barH,0,baseline);grad.addColorStop(0,'#fff');grad.addColorStop(1,'#86baff');ctx.fillStyle=grad;ctx.fillRect(x-4,baseline-barH,8,barH)}
   ctx.restore();
  }
- // Track label sits near the bottom without covering the equalizer.
- ctx.save();ctx.textAlign='center';ctx.fillStyle='rgba(255,255,255,.88)';ctx.font='20px system-ui';ctx.shadowColor='#000';ctx.shadowBlur=8;
- ctx.fillText(player.src?$('audioName').textContent:'UPLOAD YOUR MUSIC',cx,h*.94,w*.85);ctx.restore();
- // User-uploaded logo remains independently positionable.
- if(logo){
-  const size=+$('logoSize').value/100*w,ratio=logo.width/logo.height,lw=size,lh=size/ratio;
-  const x=+$('logoX').value/100*w-lw/2,y=+$('logoY').value/100*h-lh/2;
-  ctx.drawImage(logo,x,y,lw,lh);
- }
+ ctx.save();ctx.textAlign='center';ctx.fillStyle='rgba(255,255,255,.88)';ctx.font='20px system-ui';ctx.shadowColor='#000';ctx.shadowBlur=8;ctx.fillText(player.src?$('audioName').textContent:'UPLOAD YOUR MUSIC',cx,h*.94,w*.85);ctx.restore();
+ // Keep the independent movable logo for the other styles; Golden Tide uses it inside its center badge.
+ if(logo&&style!=='ocean'){const size=+$('logoSize').value/100*w,ratio=logo.width/logo.height,lw=size,lh=size/ratio,x=+$('logoX').value/100*w-lw/2,y=+$('logoY').value/100*h-lh/2;ctx.drawImage(logo,x,y,lw,lh)}
  raf=requestAnimationFrame(draw);
 }
 draw();
