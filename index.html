@@ -30,41 +30,82 @@ function setupAudio(){if(audioCtx)return;audioCtx=new (window.AudioContext||wind
 function applyEffects(){if(!audioCtx)return;low.gain.setTargetAtTime(+$('bass').value,audioCtx.currentTime,.025);high.gain.setTargetAtTime(+$('treble').value,audioCtx.currentTime,.025);gain.gain.setTargetAtTime(1,audioCtx.currentTime,.025);master.gain.setTargetAtTime(+$('volume').value/100,audioCtx.currentTime,.025);dry.gain.setTargetAtTime(1,audioCtx.currentTime,.025);const wet=+$('echo').value/100;echoWet.gain.setTargetAtTime(wet*.65,audioCtx.currentTime,.03);feedback.gain.setTargetAtTime(wet*.58,audioCtx.currentTime,.03);delay.delayTime.setTargetAtTime(.18+wet*.32,audioCtx.currentTime,.03)}
 player.onplay=()=>{setupAudio();audioCtx.resume()};
 function draw(){
-const w=canvas.width,h=canvas.height,cx=w/2;
-ctx.clearRect(0,0,w,h);
-if(bg){ctx.drawImage(bg,0,0,w,h)}else{
- let g=ctx.createLinearGradient(0,0,w,h);
+ const w=canvas.width,h=canvas.height,cx=w/2,cy=h/2;
+ ctx.clearRect(0,0,w,h);
+ // Background is independent from the visualizer shape.
+ if(bg){ctx.drawImage(bg,0,0,w,h)}
+ else{
+  const g=ctx.createLinearGradient(0,0,w,h);
+  if(style==='red'){g.addColorStop(0,'#210711');g.addColorStop(.5,'#7d102c');g.addColorStop(1,'#170817')}
+  else if(style==='ocean'){g.addColorStop(0,'#e8b7a6');g.addColorStop(.43,'#527d91');g.addColorStop(.48,'#173c50');g.addColorStop(1,'#061a2b')}
+  else{g.addColorStop(0,'#071126');g.addColorStop(.55,'#172b55');g.addColorStop(1,'#050b19')}
+  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+ }
+ const dim=+$('dim').value/100;
+ if(dim){ctx.fillStyle='rgba(0,0,0,'+dim+')';ctx.fillRect(0,0,w,h)}
+ const data=new Uint8Array(analyser?analyser.frequencyBinCount:128);
+ if(analyser) analyser.getByteFrequencyData(data); else data.fill(10);
+ const value=i=>data[Math.min(data.length-1,Math.floor(i*data.length/100))]||8;
+ const title=$('titleText').value||'MY MUSIC';
+ ctx.save();ctx.textAlign='center';ctx.fillStyle='#fff';ctx.shadowColor='#000';ctx.shadowBlur=12;ctx.font='bold 54px system-ui';ctx.fillText(title.toUpperCase(),cx,h*.16,w*.82);ctx.restore();
+
  if(style==='red'){
- // Crimson Drive / Xxanteria: radial fan of long bars around a central badge.
- const ox=cx,oy=h*.54,inner=112;
- const halo=ctx.createRadialGradient(ox,oy,inner*.5,ox,oy,inner*2.5);
- halo.addColorStop(0,'rgba(255,35,75,.34)');halo.addColorStop(1,'rgba(255,20,55,0)');
- ctx.fillStyle=halo;ctx.fillRect(ox-inner*3,oy-inner*3,inner*6,inner*6);
- ctx.save();ctx.translate(ox,oy);ctx.shadowColor='#ff365f';ctx.shadowBlur=18;
- for(let i=0;i<88;i++){const ang=(-Math.PI*.88)+(i/87)*(Math.PI*1.76),v=data[Math.floor(i*data.length/88)]||8,len=22+v*.72;
- ctx.save();ctx.rotate(ang);const grad=ctx.createLinearGradient(0,-inner-len,0,-inner);grad.addColorStop(0,'#fff0f2');grad.addColorStop(.45,'#ff526e');grad.addColorStop(1,'#a80b32');ctx.fillStyle=grad;ctx.fillRect(-4,-inner-len,8,len);ctx.restore()}
- ctx.shadowBlur=24;ctx.beginPath();ctx.arc(0,0,inner,0,Math.PI*2);ctx.fillStyle='#09060d';ctx.fill();ctx.lineWidth=7;ctx.strokeStyle='#ff3159';ctx.stroke();ctx.restore();
-}else if(style==='ocean'){
- // Golden Tide / Chill Nation: organic circular waveform ring around the center logo.
- const ox=cx,oy=h*.53,base=154;
- const glow=ctx.createRadialGradient(ox,oy,base*.65,ox,oy,base*1.65);glow.addColorStop(0,'rgba(255,220,170,.12)');glow.addColorStop(.72,'rgba(255,177,116,.34)');glow.addColorStop(1,'rgba(255,110,160,0)');
- ctx.fillStyle=glow;ctx.fillRect(ox-base*2,oy-base*2,base*4,base*4);
- const pts=180;
- for(let layer=0;layer<4;layer++){ctx.beginPath();for(let i=0;i<=pts;i++){const ang=i/pts*Math.PI*2,v=data[Math.floor((i%pts)*data.length/pts)]||8,amp=12+v*.38,r=base+amp+layer*8,x=ox+Math.cos(ang)*r,y=oy+Math.sin(ang)*r;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.closePath();ctx.strokeStyle=['#fff4d8','#ffdc8b','#ff4e9b','#713bff'][layer];ctx.lineWidth=layer===0?7:5;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=layer===0?18:10;ctx.stroke()}
- ctx.save();ctx.beginPath();ctx.arc(ox,oy,base-14,0,Math.PI*2);ctx.fillStyle='rgba(4,12,25,.84)';ctx.fill();ctx.restore();
-}else{
- // Blue Room / Wojak: one long dotted baseline with vertical bars rising from it.
- const left=70,right=w-70,baseline=h*.73,count=92,step=(right-left)/(count-1);
- ctx.save();ctx.shadowColor='#dcecff';ctx.shadowBlur=10;
- for(let i=0;i<count;i++){const v=data[Math.floor(i*data.length/count)]||6;const x=left+i*step,barH=8+v*.62;
- ctx.beginPath();ctx.arc(x,baseline,5,0,Math.PI*2);ctx.fillStyle='rgba(235,244,255,.9)';ctx.fill();
- const grad=ctx.createLinearGradient(0,baseline-barH,0,baseline);grad.addColorStop(0,'#f4f7ff');grad.addColorStop(1,'#8bbcff');ctx.fillStyle=grad;
- ctx.beginPath();ctx.roundRect(x-5,baseline-barH,10,barH,5);ctx.fill()}
- ctx.restore();
-}
-ctx.save();ctx.textAlign='center';ctx.fillStyle='rgba(255,255,255,.88)';ctx.font='22px system-ui';ctx.shadowColor='#000';ctx.shadowBlur=8;ctx.fillText(player.src?$('audioName').textContent:'UPLOAD YOUR MUSIC',cx,h*.93,1000);ctx.restore();
-if(logo){let s=+$('logoSize').value/100*w,ratio=logo.width/logo.height,lw=s,lh=s/ratio,x=+$('logoX').value/100*w-lw/2,y=+$('logoY').value/100*h-lh/2;ctx.drawImage(logo,x,y,lw,lh)}
-raf=requestAnimationFrame(draw)
+  // Crimson Drive: fan-shaped radial equalizer around a central circular badge.
+  const ox=cx,oy=h*.57,r=112;
+  const halo=ctx.createRadialGradient(ox,oy,r*.6,ox,oy,r*2.25);
+  halo.addColorStop(0,'rgba(255,45,85,.38)');halo.addColorStop(1,'rgba(255,15,55,0)');
+  ctx.fillStyle=halo;ctx.fillRect(ox-r*2.5,oy-r*2.5,r*5,r*5);
+  ctx.save();ctx.translate(ox,oy);ctx.shadowColor='#ff365f';ctx.shadowBlur=14;
+  for(let i=0;i<84;i++){
+   const angle=(-Math.PI*.88)+(i/83)*(Math.PI*1.76);
+   const amp=value(i)*.72,len=18+amp;
+   ctx.save();ctx.rotate(angle);
+   const grad=ctx.createLinearGradient(0,-r-len,0,-r);
+   grad.addColorStop(0,'#fff4f5');grad.addColorStop(.45,'#ff647d');grad.addColorStop(1,'#b20d37');
+   ctx.fillStyle=grad;ctx.fillRect(-4,-r-len,8,len);ctx.restore();
+  }
+  ctx.shadowBlur=20;ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fillStyle='#08060d';ctx.fill();ctx.lineWidth=7;ctx.strokeStyle='#ff315b';ctx.stroke();ctx.restore();
+ }else if(style==='ocean'){
+  // Golden Tide: circular, organic waveform ring around a central logo area.
+  const ox=cx,oy=h*.55,r=Math.min(w,h)*.245;
+  const glow=ctx.createRadialGradient(ox,oy,r*.6,ox,oy,r*1.7);
+  glow.addColorStop(0,'rgba(255,231,190,.08)');glow.addColorStop(.7,'rgba(255,177,116,.34)');glow.addColorStop(1,'rgba(255,90,150,0)');
+  ctx.fillStyle=glow;ctx.fillRect(ox-r*2,oy-r*2,r*4,r*4);
+  for(let layer=0;layer<3;layer++){
+   ctx.beginPath();
+   for(let i=0;i<=240;i++){
+    const angle=i/240*Math.PI*2,amp=8+value(i%100)*.27;
+    const radius=r+amp+layer*7,x=ox+Math.cos(angle)*radius,y=oy+Math.sin(angle)*radius;
+    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+   }
+   ctx.closePath();ctx.lineWidth=layer===0?8:5;
+   ctx.strokeStyle=['#fff1d4','#ffdc76','#f13e9c'][layer];
+   ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=layer===0?17:10;ctx.stroke();
+  }
+  ctx.save();ctx.shadowBlur=0;ctx.beginPath();ctx.arc(ox,oy,r-12,0,Math.PI*2);ctx.fillStyle='rgba(4,10,20,.82)';ctx.fill();ctx.restore();
+ }else{
+  // Blue Room: a wide dotted baseline with vertical bars rising from it.
+  const left=w*.09,right=w*.91,baseline=h*.76,count=92,step=(right-left)/(count-1);
+  ctx.save();ctx.shadowColor='#e4f1ff';ctx.shadowBlur=8;
+  for(let i=0;i<count;i++){
+   const x=left+i*step,amp=value(i)*.68,barH=5+amp;
+   ctx.beginPath();ctx.arc(x,baseline,4.5,0,Math.PI*2);ctx.fillStyle='#eaf1ff';ctx.fill();
+   const grad=ctx.createLinearGradient(0,baseline-barH,0,baseline);
+   grad.addColorStop(0,'#ffffff');grad.addColorStop(1,'#86baff');
+   ctx.fillStyle=grad;ctx.fillRect(x-4,baseline-barH,8,barH);
+  }
+  ctx.restore();
+ }
+ // Track label sits near the bottom without covering the equalizer.
+ ctx.save();ctx.textAlign='center';ctx.fillStyle='rgba(255,255,255,.88)';ctx.font='20px system-ui';ctx.shadowColor='#000';ctx.shadowBlur=8;
+ ctx.fillText(player.src?$('audioName').textContent:'UPLOAD YOUR MUSIC',cx,h*.94,w*.85);ctx.restore();
+ // User-uploaded logo remains independently positionable.
+ if(logo){
+  const size=+$('logoSize').value/100*w,ratio=logo.width/logo.height,lw=size,lh=size/ratio;
+  const x=+$('logoX').value/100*w-lw/2,y=+$('logoY').value/100*h-lh/2;
+  ctx.drawImage(logo,x,y,lw,lh);
+ }
+ raf=requestAnimationFrame(draw);
 }
 draw();
 $('start').onclick=async()=>{if(!player.src){$('status').textContent='Please upload an audio file first.';return}setupAudio();await audioCtx.resume();if(player.paused)await player.play();const stream=canvas.captureStream(30);dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t));chunks=[];let type=MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':'video/webm';try{mediaRec=new MediaRecorder(stream,{mimeType:type})}catch(e){mediaRec=new MediaRecorder(stream)}mediaRec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};mediaRec.onstop=()=>{recorded=new Blob(chunks,{type:'video/webm'});$('webm').disabled=false;$('mp4').disabled=false;$('status').textContent='Recording ready. Download WebM or try MP4 conversion.'};mediaRec.start(1000);$('start').disabled=true;$('stop').disabled=false;$('status').textContent='Recording… play your track for the desired length.'};
