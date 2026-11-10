@@ -66,23 +66,44 @@ function draw(){
   }
   ctx.shadowBlur=20;ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fillStyle='#08060d';ctx.fill();ctx.lineWidth=7;ctx.strokeStyle='#ff315b';ctx.stroke();ctx.restore();
  }else if(style==='ocean'){
-  // Golden Tide: circular, organic waveform ring around a central logo area.
-  const ox=cx,oy=h*.55,r=Math.min(w,h)*.245;
-  const glow=ctx.createRadialGradient(ox,oy,r*.6,ox,oy,r*1.7);
-  glow.addColorStop(0,'rgba(255,231,190,.08)');glow.addColorStop(.7,'rgba(255,177,116,.34)');glow.addColorStop(1,'rgba(255,90,150,0)');
+  // Golden Tide: prominent circular audio-reactive halo, like the Chill Nation reference.
+  const ox=cx,oy=h*.55,r=Math.min(w,h)*.255;
+  const glow=ctx.createRadialGradient(ox,oy,r*.45,ox,oy,r*1.9);
+  glow.addColorStop(0,'rgba(255,236,200,.06)');
+  glow.addColorStop(.58,'rgba(255,191,128,.35)');
+  glow.addColorStop(.82,'rgba(255,74,156,.22)');
+  glow.addColorStop(1,'rgba(70,80,255,0)');
   ctx.fillStyle=glow;ctx.fillRect(ox-r*2,oy-r*2,r*4,r*4);
-  for(let layer=0;layer<3;layer++){
+  // Outer wavy rings.
+  for(let layer=0;layer<4;layer++){
    ctx.beginPath();
-   for(let i=0;i<=240;i++){
-    const angle=i/240*Math.PI*2,amp=8+value(i%100)*.27;
-    const radius=r+amp+layer*7,x=ox+Math.cos(angle)*radius,y=oy+Math.sin(angle)*radius;
+   for(let i=0;i<=360;i++){
+    const angle=i/360*Math.PI*2;
+    const bin=Math.floor((i/360)*data.length);
+    const amp=(data[bin]||8)*.24;
+    const ripple=Math.sin(angle*9+layer*.7)*5+Math.cos(angle*15-layer)*3;
+    const radius=r+amp+ripple+layer*7;
+    const x=ox+Math.cos(angle)*radius,y=oy+Math.sin(angle)*radius;
     if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
    }
-   ctx.closePath();ctx.lineWidth=layer===0?8:5;
-   ctx.strokeStyle=['#fff1d4','#ffdc76','#f13e9c'][layer];
-   ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=layer===0?17:10;ctx.stroke();
+   ctx.closePath();
+   ctx.lineWidth=layer===0?9:6;
+   ctx.strokeStyle=['#fff5dc','#ffe16e','#ff4b9b','#6d55ff'][layer];
+   ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=layer===0?20:13;ctx.stroke();
   }
-  ctx.save();ctx.shadowBlur=0;ctx.beginPath();ctx.arc(ox,oy,r-12,0,Math.PI*2);ctx.fillStyle='rgba(4,10,20,.82)';ctx.fill();ctx.restore();
+  // Inner dark disc provides a clear place for the user's uploaded logo.
+  ctx.save();ctx.shadowColor='#ffbd8a';ctx.shadowBlur=18;
+  ctx.beginPath();ctx.arc(ox,oy,r-12,0,Math.PI*2);
+  ctx.fillStyle='#090b15';ctx.fill();ctx.lineWidth=4;ctx.strokeStyle='rgba(255,245,220,.9)';ctx.stroke();
+  ctx.restore();
+  // Short radial ticks make the circle visibly react even on quiet audio.
+  ctx.save();ctx.translate(ox,oy);ctx.shadowColor='#ffe5b0';ctx.shadowBlur=10;
+  for(let i=0;i<72;i++){
+   const angle=i/72*Math.PI*2,bin=Math.floor(i/72*data.length),len=8+(data[bin]||6)*.22;
+   ctx.save();ctx.rotate(angle);ctx.strokeStyle=i%3===0?'#fff0c9':'#ffb6a0';ctx.lineWidth=3;
+   ctx.beginPath();ctx.moveTo(0,-r-13);ctx.lineTo(0,-r-13-len);ctx.stroke();ctx.restore();
+  }
+  ctx.restore();
  }else{
   // Blue Room: a wide dotted baseline with vertical bars rising from it.
   const left=w*.09,right=w*.91,baseline=h*.76,count=92,step=(right-left)/(count-1);
