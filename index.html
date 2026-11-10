@@ -29,14 +29,67 @@ document.querySelectorAll('.template').forEach(el=>el.onclick=()=>{document.quer
 function setupAudio(){if(audioCtx)return;audioCtx=new (window.AudioContext||window.webkitAudioContext)();source=audioCtx.createMediaElementSource(player);low=audioCtx.createBiquadFilter();low.type='lowshelf';low.frequency.value=180;high=audioCtx.createBiquadFilter();high.type='highshelf';high.frequency.value=4200;gain=audioCtx.createGain();dry=audioCtx.createGain();master=audioCtx.createGain();delay=audioCtx.createDelay(1);feedback=audioCtx.createGain();echoWet=audioCtx.createGain();analyser=audioCtx.createAnalyser();analyser.fftSize=512;dest=audioCtx.createMediaStreamDestination();source.connect(low);low.connect(high);high.connect(gain);gain.connect(dry);dry.connect(master);gain.connect(delay);delay.connect(feedback);feedback.connect(delay);delay.connect(echoWet);echoWet.connect(master);master.connect(analyser);analyser.connect(audioCtx.destination);analyser.connect(dest);applyEffects()}
 function applyEffects(){if(!audioCtx)return;low.gain.setTargetAtTime(+$('bass').value,audioCtx.currentTime,.025);high.gain.setTargetAtTime(+$('treble').value,audioCtx.currentTime,.025);gain.gain.setTargetAtTime(1,audioCtx.currentTime,.025);master.gain.setTargetAtTime(+$('volume').value/100,audioCtx.currentTime,.025);dry.gain.setTargetAtTime(1,audioCtx.currentTime,.025);const wet=+$('echo').value/100;echoWet.gain.setTargetAtTime(wet*.65,audioCtx.currentTime,.03);feedback.gain.setTargetAtTime(wet*.58,audioCtx.currentTime,.03);delay.delayTime.setTargetAtTime(.18+wet*.32,audioCtx.currentTime,.03)}
 player.onplay=()=>{setupAudio();audioCtx.resume()};
-function draw(){const w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);if(bg){ctx.drawImage(bg,0,0,w,h)}else{let g=ctx.createLinearGradient(0,0,w,h);if(style==='red'){g.addColorStop(0,'#190810');g.addColorStop(.5,'#a71935');g.addColorStop(1,'#10091e')}else if(style==='ocean'){g.addColorStop(0,'#10284a');g.addColorStop(.5,'#e18b72');g.addColorStop(1,'#09213d')}else{g.addColorStop(0,'#061529');g.addColorStop(.5,'#24669b');g.addColorStop(1,'#080d20')}ctx.fillStyle=g;ctx.fillRect(0,0,w,h);for(let i=0;i<18;i++){ctx.fillStyle='rgba(255,255,255,.035)';ctx.beginPath();ctx.arc((i*173)%w,(i*97)%h,30+(i%5)*16,0,Math.PI*2);ctx.fill()}}
+function draw(){
+const w=canvas.width,h=canvas.height,cx=w/2;
+ctx.clearRect(0,0,w,h);
+if(bg){ctx.drawImage(bg,0,0,w,h)}else{
+ let g=ctx.createLinearGradient(0,0,w,h);
+ if(style==='red'){g.addColorStop(0,'#09050b');g.addColorStop(.48,'#5e071b');g.addColorStop(1,'#09050d')}
+ else if(style==='ocean'){g.addColorStop(0,'#182b58');g.addColorStop(.48,'#f0a477');g.addColorStop(.7,'#163d61');g.addColorStop(1,'#06182e')}
+ else{g.addColorStop(0,'#071426');g.addColorStop(.58,'#123e67');g.addColorStop(1,'#030914')}
+ ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+}
 ctx.fillStyle='rgba(0,0,0,'+($('dim').value/100)+')';ctx.fillRect(0,0,w,h);
-const title=$('titleText').value||'MY MUSIC';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=16;ctx.fillStyle='white';ctx.font='bold 64px system-ui';ctx.fillText(title.toUpperCase(),w/2,h*.24,1100);
-let data=new Uint8Array(analyser?analyser.frequencyBinCount:128);if(analyser)analyser.getByteFrequencyData(data);else data.fill(20);
-const count=80,barW=9,gap=6,total=count*(barW+gap),start=(w-total)/2;for(let i=0;i<count;i++){let v=data[Math.floor(i*data.length/count)]||10;let bh=20+v*1.7;let grad=ctx.createLinearGradient(0,h*.72-bh,0,h*.72);grad.addColorStop(0,'#fff');grad.addColorStop(.35,style==='red'?'#ff4f75':style==='ocean'?'#ffd6a1':'#71d6ff');grad.addColorStop(1,'#7666ff');ctx.fillStyle=grad;ctx.fillRect(start+i*(barW+gap),h*.72-bh,barW,bh)}
-ctx.fillStyle='rgba(255,255,255,.85)';ctx.font='22px system-ui';ctx.fillText(player.src?$('audioName').textContent:'UPLOAD YOUR MUSIC',w/2,h*.88);
+let data=new Uint8Array(analyser?analyser.frequencyBinCount:128);
+if(analyser)analyser.getByteFrequencyData(data);else data.fill(18);
+const level=i=>(data[Math.floor(i*data.length/Math.max(1,80))]||12)/255;
+const title=$('titleText').value||'MY MUSIC';
+ctx.save();ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=18;ctx.fillStyle='#fff';ctx.font='bold 62px system-ui';ctx.fillText(title.toUpperCase(),cx,style==='blue'?105:112,1100);ctx.restore();
+
+if(style==='red'){
+ // Crimson Drive: deep red futuristic corridor with converging ceiling and floor rails.
+ const vanishY=h*.48;
+ const glow=ctx.createRadialGradient(cx,vanishY,10,cx,vanishY,w*.58);
+ glow.addColorStop(0,'rgba(255,45,85,.42)');glow.addColorStop(1,'rgba(0,0,0,0)');
+ ctx.fillStyle=glow;ctx.fillRect(0,0,w,h);
+ ctx.save();ctx.lineWidth=3;
+ for(let i=0;i<13;i++){const t=i/12;ctx.strokeStyle='rgba(255,55,91,'+(.12+t*.34)+')';ctx.beginPath();ctx.moveTo(cx+(t-.5)*w*.12,vanishY);ctx.lineTo(cx+(t-.5)*w*1.5,h);ctx.stroke()}
+ for(let i=0;i<9;i++){let y=vanishY+Math.pow(i/8,2)*h*.52;ctx.strokeStyle='rgba(255,70,100,'+(0.12+i*.025)+')';ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+ ctx.shadowColor='#ff244e';ctx.shadowBlur=22;ctx.strokeStyle='#ff365e';ctx.lineWidth=5;ctx.strokeRect(28,28,w-56,h-56);ctx.restore();
+ // Strong central waveform and mirrored red spectrum.
+ const mid=h*.62,step=w/100;ctx.save();ctx.shadowColor='#ff315d';ctx.shadowBlur=18;ctx.lineWidth=3;
+ ctx.beginPath();for(let i=0;i<100;i++){let x=i*step,v=data[Math.floor(i*data.length/100)]||10,y=mid-Math.sin(i*.22)*v*.58;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.strokeStyle='#ff6680';ctx.stroke();
+ for(let i=0;i<64;i++){let v=data[Math.floor(i*data.length/64)]||8,bh=18+v*.72,x=70+i*(w-140)/64;let gr=ctx.createLinearGradient(0,mid-bh,0,mid+bh);gr.addColorStop(0,'#ffb0bd');gr.addColorStop(.5,'#ff244e');gr.addColorStop(1,'#7b0929');ctx.fillStyle=gr;ctx.fillRect(x,mid-bh/2,7,bh)}
+ ctx.restore();
+}else if(style==='ocean'){
+ // Golden Tide: sunset disc, horizon, layered sea and soft mirrored spectrum.
+ const sunY=h*.43,sunR=155;
+ const sg=ctx.createRadialGradient(cx,sunY,8,cx,sunY,sunR*1.7);sg.addColorStop(0,'#fff0c4');sg.addColorStop(.45,'#ffbd86');sg.addColorStop(1,'rgba(255,158,115,0)');
+ ctx.fillStyle=sg;ctx.fillRect(cx-sunR*2,sunY-sunR*2,sunR*4,sunR*4);
+ ctx.fillStyle='#ffd7a0';ctx.beginPath();ctx.arc(cx,sunY,sunR,Math.PI,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#173958';ctx.fillRect(0,sunY,w,h-sunY);
+ for(let layer=0;layer<5;layer++){ctx.beginPath();let base=sunY+35+layer*55;ctx.moveTo(0,h);for(let x=0;x<=w;x+=8){let y=base+Math.sin(x*.012+layer*1.7)*10+Math.sin(x*.027+layer)*5;ctx.lineTo(x,y)}ctx.lineTo(w,h);ctx.closePath();ctx.fillStyle=['#214c6a','#173e5c','#12334f','#0d2944','#081d35'][layer];ctx.fill()}
+ ctx.save();ctx.globalAlpha=.5;ctx.shadowColor='#ffd39b';ctx.shadowBlur=28;
+ for(let i=0;i<52;i++){let x=cx+(i-26)*15,v=data[Math.floor(i*data.length/52)]||8,bh=12+v*.45;ctx.fillStyle=i%2?'#ffd8a8':'#fff0ce';ctx.fillRect(x,sunY+85-bh/2,6,bh)}
+ ctx.restore();
+ for(let i=0;i<24;i++){let y=sunY+125+i*15;ctx.strokeStyle='rgba(255,211,160,'+(0.18-i*.005)+')';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx-100-i*5,y);ctx.lineTo(cx+100+i*5,y);ctx.stroke()}
+}else{
+ // Blue Room: architectural room, floor perspective and a circular radial equalizer.
+ const wall=ctx.createLinearGradient(0,0,0,h*.72);wall.addColorStop(0,'#071426');wall.addColorStop(1,'#1b5680');ctx.fillStyle=wall;ctx.fillRect(0,0,w,h*.72);
+ ctx.fillStyle='#06101e';ctx.beginPath();ctx.moveTo(0,h*.72);ctx.lineTo(w,h*.72);ctx.lineTo(w,h);ctx.lineTo(0,h);ctx.closePath();ctx.fill();
+ ctx.strokeStyle='rgba(80,180,255,.28)';ctx.lineWidth=3;
+ ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(cx,h*.72);ctx.lineTo(w,0);ctx.moveTo(0,h*.72);ctx.lineTo(w,h*.72);ctx.stroke();
+ for(let i=1;i<9;i++){let y=h*.72+Math.pow(i/8,1.7)*h*.28;ctx.strokeStyle='rgba(75,166,230,.22)';ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+ for(let i=-5;i<=5;i++){ctx.strokeStyle='rgba(75,166,230,.17)';ctx.beginPath();ctx.moveTo(cx+i*14,h*.72);ctx.lineTo(cx+i*145,h);ctx.stroke()}
+ const ringX=cx,ringY=h*.53,baseR=142;ctx.save();ctx.translate(ringX,ringY);ctx.shadowColor='#49baff';ctx.shadowBlur=24;
+ ctx.beginPath();ctx.arc(0,0,baseR,0,Math.PI*2);ctx.strokeStyle='rgba(105,205,255,.65)';ctx.lineWidth=5;ctx.stroke();
+ for(let i=0;i<96;i++){let a=i/96*Math.PI*2,v=data[Math.floor(i*data.length/96)]||10,len=18+v*.5;let x1=Math.cos(a)*baseR,y1=Math.sin(a)*baseR,x2=Math.cos(a)*(baseR+len),y2=Math.sin(a)*(baseR+len);ctx.strokeStyle=i%3?'#54c5ff':'#c1f0ff';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
+ ctx.beginPath();ctx.arc(0,0,baseR-18,0,Math.PI*2);ctx.fillStyle='rgba(4,17,32,.58)';ctx.fill();ctx.restore();
+}
+ctx.save();ctx.textAlign='center';ctx.fillStyle='rgba(255,255,255,.88)';ctx.font='22px system-ui';ctx.shadowColor='#000';ctx.shadowBlur=8;ctx.fillText(player.src?$('audioName').textContent:'UPLOAD YOUR MUSIC',cx,h*.93,1000);ctx.restore();
 if(logo){let s=+$('logoSize').value/100*w,ratio=logo.width/logo.height,lw=s,lh=s/ratio,x=+$('logoX').value/100*w-lw/2,y=+$('logoY').value/100*h-lh/2;ctx.drawImage(logo,x,y,lw,lh)}
-ctx.shadowBlur=0;raf=requestAnimationFrame(draw)}
+raf=requestAnimationFrame(draw)
+}
 draw();
 $('start').onclick=async()=>{if(!player.src){$('status').textContent='Please upload an audio file first.';return}setupAudio();await audioCtx.resume();if(player.paused)await player.play();const stream=canvas.captureStream(30);dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t));chunks=[];let type=MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':'video/webm';try{mediaRec=new MediaRecorder(stream,{mimeType:type})}catch(e){mediaRec=new MediaRecorder(stream)}mediaRec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};mediaRec.onstop=()=>{recorded=new Blob(chunks,{type:'video/webm'});$('webm').disabled=false;$('mp4').disabled=false;$('status').textContent='Recording ready. Download WebM or try MP4 conversion.'};mediaRec.start(1000);$('start').disabled=true;$('stop').disabled=false;$('status').textContent='Recording… play your track for the desired length.'};
 $('stop').onclick=()=>{if(mediaRec&&mediaRec.state!=='inactive')mediaRec.stop();$('stop').disabled=true;$('start').disabled=false};
