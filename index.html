@@ -34,57 +34,33 @@ const w=canvas.width,h=canvas.height,cx=w/2;
 ctx.clearRect(0,0,w,h);
 if(bg){ctx.drawImage(bg,0,0,w,h)}else{
  let g=ctx.createLinearGradient(0,0,w,h);
- if(style==='red'){g.addColorStop(0,'#09050b');g.addColorStop(.48,'#5e071b');g.addColorStop(1,'#09050d')}
- else if(style==='ocean'){g.addColorStop(0,'#182b58');g.addColorStop(.48,'#f0a477');g.addColorStop(.7,'#163d61');g.addColorStop(1,'#06182e')}
- else{g.addColorStop(0,'#071426');g.addColorStop(.58,'#123e67');g.addColorStop(1,'#030914')}
- ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
-}
-ctx.fillStyle='rgba(0,0,0,'+($('dim').value/100)+')';ctx.fillRect(0,0,w,h);
-let data=new Uint8Array(analyser?analyser.frequencyBinCount:128);
-if(analyser)analyser.getByteFrequencyData(data);else data.fill(18);
-const level=i=>(data[Math.floor(i*data.length/Math.max(1,80))]||12)/255;
-const title=$('titleText').value||'MY MUSIC';
-ctx.save();ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=18;ctx.fillStyle='#fff';ctx.font='bold 62px system-ui';ctx.fillText(title.toUpperCase(),cx,style==='blue'?105:112,1100);ctx.restore();
-
-if(style==='red'){
- // Crimson Drive: deep red futuristic corridor with converging ceiling and floor rails.
- const vanishY=h*.48;
- const glow=ctx.createRadialGradient(cx,vanishY,10,cx,vanishY,w*.58);
- glow.addColorStop(0,'rgba(255,45,85,.42)');glow.addColorStop(1,'rgba(0,0,0,0)');
- ctx.fillStyle=glow;ctx.fillRect(0,0,w,h);
- ctx.save();ctx.lineWidth=3;
- for(let i=0;i<13;i++){const t=i/12;ctx.strokeStyle='rgba(255,55,91,'+(.12+t*.34)+')';ctx.beginPath();ctx.moveTo(cx+(t-.5)*w*.12,vanishY);ctx.lineTo(cx+(t-.5)*w*1.5,h);ctx.stroke()}
- for(let i=0;i<9;i++){let y=vanishY+Math.pow(i/8,2)*h*.52;ctx.strokeStyle='rgba(255,70,100,'+(0.12+i*.025)+')';ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
- ctx.shadowColor='#ff244e';ctx.shadowBlur=22;ctx.strokeStyle='#ff365e';ctx.lineWidth=5;ctx.strokeRect(28,28,w-56,h-56);ctx.restore();
- // Strong central waveform and mirrored red spectrum.
- const mid=h*.62,step=w/100;ctx.save();ctx.shadowColor='#ff315d';ctx.shadowBlur=18;ctx.lineWidth=3;
- ctx.beginPath();for(let i=0;i<100;i++){let x=i*step,v=data[Math.floor(i*data.length/100)]||10,y=mid-Math.sin(i*.22)*v*.58;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.strokeStyle='#ff6680';ctx.stroke();
- for(let i=0;i<64;i++){let v=data[Math.floor(i*data.length/64)]||8,bh=18+v*.72,x=70+i*(w-140)/64;let gr=ctx.createLinearGradient(0,mid-bh,0,mid+bh);gr.addColorStop(0,'#ffb0bd');gr.addColorStop(.5,'#ff244e');gr.addColorStop(1,'#7b0929');ctx.fillStyle=gr;ctx.fillRect(x,mid-bh/2,7,bh)}
- ctx.restore();
+ if(style==='red'){
+ // Crimson Drive / Xxanteria: radial fan of long bars around a central badge.
+ const ox=cx,oy=h*.54,inner=112;
+ const halo=ctx.createRadialGradient(ox,oy,inner*.5,ox,oy,inner*2.5);
+ halo.addColorStop(0,'rgba(255,35,75,.34)');halo.addColorStop(1,'rgba(255,20,55,0)');
+ ctx.fillStyle=halo;ctx.fillRect(ox-inner*3,oy-inner*3,inner*6,inner*6);
+ ctx.save();ctx.translate(ox,oy);ctx.shadowColor='#ff365f';ctx.shadowBlur=18;
+ for(let i=0;i<88;i++){const ang=(-Math.PI*.88)+(i/87)*(Math.PI*1.76),v=data[Math.floor(i*data.length/88)]||8,len=22+v*.72;
+ ctx.save();ctx.rotate(ang);const grad=ctx.createLinearGradient(0,-inner-len,0,-inner);grad.addColorStop(0,'#fff0f2');grad.addColorStop(.45,'#ff526e');grad.addColorStop(1,'#a80b32');ctx.fillStyle=grad;ctx.fillRect(-4,-inner-len,8,len);ctx.restore()}
+ ctx.shadowBlur=24;ctx.beginPath();ctx.arc(0,0,inner,0,Math.PI*2);ctx.fillStyle='#09060d';ctx.fill();ctx.lineWidth=7;ctx.strokeStyle='#ff3159';ctx.stroke();ctx.restore();
 }else if(style==='ocean'){
- // Golden Tide: sunset disc, horizon, layered sea and soft mirrored spectrum.
- const sunY=h*.43,sunR=155;
- const sg=ctx.createRadialGradient(cx,sunY,8,cx,sunY,sunR*1.7);sg.addColorStop(0,'#fff0c4');sg.addColorStop(.45,'#ffbd86');sg.addColorStop(1,'rgba(255,158,115,0)');
- ctx.fillStyle=sg;ctx.fillRect(cx-sunR*2,sunY-sunR*2,sunR*4,sunR*4);
- ctx.fillStyle='#ffd7a0';ctx.beginPath();ctx.arc(cx,sunY,sunR,Math.PI,Math.PI*2);ctx.fill();
- ctx.fillStyle='#173958';ctx.fillRect(0,sunY,w,h-sunY);
- for(let layer=0;layer<5;layer++){ctx.beginPath();let base=sunY+35+layer*55;ctx.moveTo(0,h);for(let x=0;x<=w;x+=8){let y=base+Math.sin(x*.012+layer*1.7)*10+Math.sin(x*.027+layer)*5;ctx.lineTo(x,y)}ctx.lineTo(w,h);ctx.closePath();ctx.fillStyle=['#214c6a','#173e5c','#12334f','#0d2944','#081d35'][layer];ctx.fill()}
- ctx.save();ctx.globalAlpha=.5;ctx.shadowColor='#ffd39b';ctx.shadowBlur=28;
- for(let i=0;i<52;i++){let x=cx+(i-26)*15,v=data[Math.floor(i*data.length/52)]||8,bh=12+v*.45;ctx.fillStyle=i%2?'#ffd8a8':'#fff0ce';ctx.fillRect(x,sunY+85-bh/2,6,bh)}
- ctx.restore();
- for(let i=0;i<24;i++){let y=sunY+125+i*15;ctx.strokeStyle='rgba(255,211,160,'+(0.18-i*.005)+')';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx-100-i*5,y);ctx.lineTo(cx+100+i*5,y);ctx.stroke()}
+ // Golden Tide / Chill Nation: organic circular waveform ring around the center logo.
+ const ox=cx,oy=h*.53,base=154;
+ const glow=ctx.createRadialGradient(ox,oy,base*.65,ox,oy,base*1.65);glow.addColorStop(0,'rgba(255,220,170,.12)');glow.addColorStop(.72,'rgba(255,177,116,.34)');glow.addColorStop(1,'rgba(255,110,160,0)');
+ ctx.fillStyle=glow;ctx.fillRect(ox-base*2,oy-base*2,base*4,base*4);
+ const pts=180;
+ for(let layer=0;layer<4;layer++){ctx.beginPath();for(let i=0;i<=pts;i++){const ang=i/pts*Math.PI*2,v=data[Math.floor((i%pts)*data.length/pts)]||8,amp=12+v*.38,r=base+amp+layer*8,x=ox+Math.cos(ang)*r,y=oy+Math.sin(ang)*r;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.closePath();ctx.strokeStyle=['#fff4d8','#ffdc8b','#ff4e9b','#713bff'][layer];ctx.lineWidth=layer===0?7:5;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=layer===0?18:10;ctx.stroke()}
+ ctx.save();ctx.beginPath();ctx.arc(ox,oy,base-14,0,Math.PI*2);ctx.fillStyle='rgba(4,12,25,.84)';ctx.fill();ctx.restore();
 }else{
- // Blue Room: architectural room, floor perspective and a circular radial equalizer.
- const wall=ctx.createLinearGradient(0,0,0,h*.72);wall.addColorStop(0,'#071426');wall.addColorStop(1,'#1b5680');ctx.fillStyle=wall;ctx.fillRect(0,0,w,h*.72);
- ctx.fillStyle='#06101e';ctx.beginPath();ctx.moveTo(0,h*.72);ctx.lineTo(w,h*.72);ctx.lineTo(w,h);ctx.lineTo(0,h);ctx.closePath();ctx.fill();
- ctx.strokeStyle='rgba(80,180,255,.28)';ctx.lineWidth=3;
- ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(cx,h*.72);ctx.lineTo(w,0);ctx.moveTo(0,h*.72);ctx.lineTo(w,h*.72);ctx.stroke();
- for(let i=1;i<9;i++){let y=h*.72+Math.pow(i/8,1.7)*h*.28;ctx.strokeStyle='rgba(75,166,230,.22)';ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
- for(let i=-5;i<=5;i++){ctx.strokeStyle='rgba(75,166,230,.17)';ctx.beginPath();ctx.moveTo(cx+i*14,h*.72);ctx.lineTo(cx+i*145,h);ctx.stroke()}
- const ringX=cx,ringY=h*.53,baseR=142;ctx.save();ctx.translate(ringX,ringY);ctx.shadowColor='#49baff';ctx.shadowBlur=24;
- ctx.beginPath();ctx.arc(0,0,baseR,0,Math.PI*2);ctx.strokeStyle='rgba(105,205,255,.65)';ctx.lineWidth=5;ctx.stroke();
- for(let i=0;i<96;i++){let a=i/96*Math.PI*2,v=data[Math.floor(i*data.length/96)]||10,len=18+v*.5;let x1=Math.cos(a)*baseR,y1=Math.sin(a)*baseR,x2=Math.cos(a)*(baseR+len),y2=Math.sin(a)*(baseR+len);ctx.strokeStyle=i%3?'#54c5ff':'#c1f0ff';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
- ctx.beginPath();ctx.arc(0,0,baseR-18,0,Math.PI*2);ctx.fillStyle='rgba(4,17,32,.58)';ctx.fill();ctx.restore();
+ // Blue Room / Wojak: one long dotted baseline with vertical bars rising from it.
+ const left=70,right=w-70,baseline=h*.73,count=92,step=(right-left)/(count-1);
+ ctx.save();ctx.shadowColor='#dcecff';ctx.shadowBlur=10;
+ for(let i=0;i<count;i++){const v=data[Math.floor(i*data.length/count)]||6;const x=left+i*step,barH=8+v*.62;
+ ctx.beginPath();ctx.arc(x,baseline,5,0,Math.PI*2);ctx.fillStyle='rgba(235,244,255,.9)';ctx.fill();
+ const grad=ctx.createLinearGradient(0,baseline-barH,0,baseline);grad.addColorStop(0,'#f4f7ff');grad.addColorStop(1,'#8bbcff');ctx.fillStyle=grad;
+ ctx.beginPath();ctx.roundRect(x-5,baseline-barH,10,barH,5);ctx.fill()}
+ ctx.restore();
 }
 ctx.save();ctx.textAlign='center';ctx.fillStyle='rgba(255,255,255,.88)';ctx.font='22px system-ui';ctx.shadowColor='#000';ctx.shadowBlur=8;ctx.fillText(player.src?$('audioName').textContent:'UPLOAD YOUR MUSIC',cx,h*.93,1000);ctx.restore();
 if(logo){let s=+$('logoSize').value/100*w,ratio=logo.width/logo.height,lw=s,lh=s/ratio,x=+$('logoX').value/100*w-lw/2,y=+$('logoY').value/100*h-lh/2;ctx.drawImage(logo,x,y,lw,lh)}
