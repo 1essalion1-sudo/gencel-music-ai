@@ -137,7 +137,7 @@ function draw(){
   for(let i=0;i<count;i++){const x=left+i*step,amp=value(i)*.68,barH=5+amp;ctx.beginPath();ctx.arc(x,baseline,4.5,0,Math.PI*2);ctx.fillStyle='#eaf1ff';ctx.fill();const grad=ctx.createLinearGradient(0,baseline-barH,0,baseline);grad.addColorStop(0,'#fff');grad.addColorStop(1,'#86baff');ctx.fillStyle=grad;ctx.fillRect(x-4,baseline-barH,8,barH)}
   ctx.restore();
  }
- ctx.save();ctx.textAlign='center';ctx.fillStyle='rgba(255,255,255,.88)';ctx.font='20px system-ui';ctx.shadowColor='#000';ctx.shadowBlur=8;if(player.src)ctx.fillText($('audioName').textContent,cx,h*.94,w*.85);ctx.restore();
+ ctx.save();ctx.textAlign='center';ctx.fillStyle='rgba(255,255,255,.88)';ctx.font='20px system-ui';ctx.shadowColor='#000';ctx.shadowBlur=8;// Audio filename intentionally hidden from exported visualizer.ctx.restore();
  // Keep the independent movable logo for the other styles; Golden Tide uses it inside its center badge.
  if(logo&&style!=='ocean'){const size=+$('logoSize').value/100*w,ratio=logo.width/logo.height,lw=size,lh=size/ratio,x=+$('logoX').value/100*w-lw/2,y=+$('logoY').value/100*h-lh/2;ctx.drawImage(logo,x,y,lw,lh)}
  raf=requestAnimationFrame(draw);
